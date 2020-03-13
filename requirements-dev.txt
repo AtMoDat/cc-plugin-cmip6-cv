@@ -1,0 +1,12 @@
+flake8
+flake8-builtins
+flake8-comprehensions
+flake8-mutable
+flake8-print
+pytest
+pytest-flake8
+requests-mock>=1.5.2
+compliance-checker>=4.2.2
+regex>=2017.07.28
+appdirs>=1.4.0
+numpy

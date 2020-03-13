@@ -1,0 +1,4 @@
+include *.txt
+include README.md
+include versioneer.py
+include cc_plugin_cmip6_cv/_version.py

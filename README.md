@@ -15,12 +15,21 @@ Useful links:
 
 ## Installation
 
+First install the IOOS Compliance Checker -- e.g. via Conda:
+
+```shell
+conda install -c conda-forge compliance-checker
+```
+
+For details please read the [IOOS Compliance Checker Installtion Note](https://github.com/ioos/compliance-checker/wiki/Installation).
+
 ### Conda
 
 **not available yet; later it will be:**
 
 ```shell
-$ conda install -c conda-forge cc-plugin-cmip6-cv
+# NOT WORKING YET
+conda install -c conda-forge cc-plugin-cmip6-cv
 ```
 
 ### Pip, Precompiled
@@ -31,7 +40,7 @@ $ conda install -c conda-forge cc-plugin-cmip6-cv
 ### Pip, own compilation (e.g. for development)
 
 ```shell
-python setup.py develop
+python setup.py install
 ```
 
 Uninstall before new install:

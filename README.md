@@ -130,9 +130,11 @@ Some CVs are provided as `dict`ionaries. Some global attributes are compared aga
 To generate a proper instance of `cv_structure` for the current CMIP6 CVs one should instanciate it with `cc_plugin_cmip6_cv.cv_tools.__cmip6_cv_struct_dict__`. This variable is also a good example on how to adapt this plugin for checking other CVs.
 
 
-## Contributors
+## Contributions
 
-## Direct Contributors
+### Direct Contributors
+
+TODO
 
 ### Indirect Contributors via Stackexchange Network
 
@@ -161,5 +163,6 @@ To generate a proper instance of `cv_structure` for the current CMIP6 CVs one sh
    * https://stackoverflow.com/questions/34648337/how-to-test-a-decorator-in-a-python-package/34648674
 
 
+### Funding
 
-
+This plugin was originally created within the AtMoDat project (**At**mospheric **Mo**del **Dat**a, https://www.atmodat.de). AtMoDat is funded by the German Federal Ministry for Education and Research within the framework of *Atmosphären-Modelldaten: Datenqualität, Kurationskriterien und DOI-Branding* (FKZ 16QK02A).

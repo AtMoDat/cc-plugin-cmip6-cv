@@ -1,9 +1,14 @@
 # CMIP6 Controlled Vocabulary Checker Plugin for the IOOS Compliance Checker
 
-TODO
+This plugin is meant to check the global attributes of netCDF files for the conformance with the CMIP6 standard. The global attributes are checked against controlled vocabularies (CVs). Other things like the coordinates system within the netCDF files, the CF Conventions or the DRS are not checked. Compliance with the CF Conventions has to be checked with the CF Conventions Plugin.
 
-useful links:
+If you deploy this Plugin in a multi-user environment (e.g. a HPC system) you might consider to place the CVs at a central location and let the user's environement variable `CMIP6_JSON_PATH` point to the location. See further below for details.
 
+This Plugin is made in a way that several functions can be reused when `things` (texts, global attributes, variable names, ...) should be checked against other controlled vocabularies. There is a structure `__cmip6_cv_struct_dict__` defined in `cv_tools` from which an instance of `cv_structure` is generated. The resulting object holds information on how the `things` are compared against the CVs.
+
+Useful links:
+
+* This plugin's repository: https://github.com/neumannd/cc-plugin-cmip6-cv
 * IOOS Compliance Checker repository: https://github.com/ioos/compliance-checker
 * CMIP6 CV repository: https://github.com/WCRP-CMIP/CMIP6_CVs
 
@@ -12,7 +17,7 @@ useful links:
 
 ### Conda
 
-not available yet; later it will be:
+**not available yet; later it will be:**
 
 ```shell
 $ conda install -c conda-forge cc-plugin-cmip6-cv
@@ -20,7 +25,7 @@ $ conda install -c conda-forge cc-plugin-cmip6-cv
 
 ### Pip, Precompiled
 
-not available yet
+**not available yet**
 
 
 ### Pip, own compilation (e.g. for development)

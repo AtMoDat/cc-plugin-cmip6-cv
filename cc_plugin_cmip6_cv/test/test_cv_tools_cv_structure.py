@@ -1,7 +1,7 @@
-from cc_plugin_cmip6_cv.cv_tools import cv_structure, \
+from cc_plugin_cmip6_cv.cv_structure import cv_structure, \
     validate_structure_of_cvs, should_process_all_cvs, \
     validate_argument_attribute
-import cc_plugin_cmip6_cv.cv_tools as cv_tools
+import cc_plugin_cmip6_cv.cv_structure as cv_tools
 import pytest
 import numpy
 import inspect

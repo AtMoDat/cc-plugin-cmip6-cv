@@ -16,8 +16,9 @@ Web Links
 from __future__ import (absolute_import, division, print_function)
 from compliance_checker import __version__
 from compliance_checker.base import BaseNCCheck, BaseCheck, Result
-from cc_plugin_cmip6_cv.cv_tools import cv_structure, \
-                                        should_process_all_cvs
+from cc_plugin_cmip6_cv.cv_structure import cv_structure, \
+                                            should_process_all_cvs, \
+                                            __allowed_types_for_cvs__
 from cc_plugin_cmip6_cv.util import read_cmip6_json_cv, update_cmip6_json_cv, \
                                     data_directory_collection, accepts
 from cc_plugin_cmip6_cv.cmip6_constants import __cmip6_cv_struct_dict__, \
@@ -25,7 +26,6 @@ from cc_plugin_cmip6_cv.cmip6_constants import __cmip6_cv_struct_dict__, \
 
 import sys
 import netCDF4 as nc
-import cc_plugin_cmip6_cv.cv_tools as cv_tools
 
 
 class CMIP6CVBaseCheck(BaseCheck):
@@ -70,7 +70,7 @@ class CMIP6CVBaseCheck(BaseCheck):
         return results
 
     @accepts(None, list, nc._netCDF4.Dataset, cv_structure,
-             cv_tools.__allowed_types_for_cvs__, list)
+             __allowed_types_for_cvs__, list)
     def iterate_cv_structure(self, results, dataset, cv_struct, cvs,
                              parent_attribute_tree=[]):
         """
@@ -170,7 +170,7 @@ class CMIP6CVBaseCheck(BaseCheck):
         return results
 
     @accepts(None, list, nc._netCDF4.Dataset,
-             cv_tools.__allowed_types_for_cvs__, list, list)
+             __allowed_types_for_cvs__, list, list)
     def iterate_cv_all(self, results, dataset, cvs,
                        parent_attribute_tree=[], ignore_cvs=[]):
         """

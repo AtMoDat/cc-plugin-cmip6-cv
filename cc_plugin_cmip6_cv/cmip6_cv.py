@@ -16,10 +16,12 @@ Web Links
 from __future__ import (absolute_import, division, print_function)
 from compliance_checker import __version__
 from compliance_checker.base import BaseNCCheck, BaseCheck, Result
-from cc_plugin_cmip6_cv.cv_tools import cv_structure, check_cv, \
-                                       should_process_all_cvs
+from cc_plugin_cmip6_cv.cv_tools import cv_structure, \
+                                        should_process_all_cvs
 from cc_plugin_cmip6_cv.util import read_cmip6_json_cv, update_cmip6_json_cv, \
-                                   data_directory_collection, accepts
+                                    data_directory_collection, accepts
+from cc_plugin_cmip6_cv.cmip6_constants import __cmip6_cv_struct_dict__, \
+                                               __cmip6_cv_ignore__
 
 import sys
 import netCDF4 as nc
@@ -45,7 +47,7 @@ class CMIP6CVBaseCheck(BaseCheck):
 
     def check_cvs(self, ds):
         # get CV structure to check
-        my_cv_structure = cv_structure(cv_tools.__cmip6_cv_struct_dict__)
+        my_cv_structure = cv_structure(__cmip6_cv_struct_dict__)
         needed_cvs = my_cv_structure.get_cv_names_needed()
 
         # determine directory
@@ -98,9 +100,9 @@ class CMIP6CVBaseCheck(BaseCheck):
                     continue
 
                 # else ... do more!
-                attr_correct = check_cv(cv_struct, attribute, cvs,
-                                        getattr(dataset, attribute),
-                                        guess=True)
+                attr_correct = cv_struct.check_cv(attribute, cvs,
+                                                  getattr(dataset, attribute),
+                                                  guess=True)
                 results.append(Result(BaseCheck.HIGH, attr_correct,
                                       test_name_base,
                                       ['attribute `' + attribute + '` with ' +
@@ -156,7 +158,6 @@ class CMIP6CVBaseCheck(BaseCheck):
                             results = self.iterate_cv_all(results, dataset,
                                                           cvs_child,
                                                           this_attribute_tree,
-                                                          cv_tools.
                                                           __cmip6_cv_ignore__)
 
             else:
@@ -204,9 +205,10 @@ class CMIP6CVBaseCheck(BaseCheck):
             # print(attribute)
             # check value of attribute for presence in Dataset
             if (hasattr(dataset, attribute)):
-                attr_correct = check_cv(autogen_cv_struct, attribute, cvs,
-                                        getattr(dataset, attribute),
-                                        guess=True)
+                attr_correct = autogen_cv_struct.check_cv(attribute, cvs,
+                                                          getattr(dataset,
+                                                                  attribute),
+                                                          guess=True)
                 results.append(Result(BaseCheck.HIGH, attr_correct,
                                       test_name_base,
                                       ['attribute `' + attribute + '` with ' +

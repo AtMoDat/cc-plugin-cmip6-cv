@@ -1,5 +1,4 @@
-# IMPORTS
-import numpy
+# ~~~~~~~~~~~~~~ imports ~~~~~~~~~~~~~~
 import functools
 import sys
 import inspect
@@ -8,49 +7,6 @@ from cc_plugin_cmip6_cv.util import isinstance_recursive_tuple, accepts
 
 
 # ~~~~~~~~~~~~~~ global variables ~~~~~~~~~~~~~~
-# structure of each value of `__cmip6_cv_struct_dict__`:
-#   [operation, CV_NAME_IMPORT, CV_VALUES, FUN, RECURSIVE]
-__cmip6_cv_struct_dict__ = {'activity_id': ['in', 'activity_id', None,
-                                            'keys', False],
-                            'parent_activity_id': ['in', 'activity_id',
-                                                   None, 'keys', False],
-                            'experiment_id': ['in', 'experiment_id', None,
-                                              'keys', True],
-                            'parent_experiment_id': ['in', 'experiment_id',
-                                                     None, 'keys', False],
-                            'frequency': ['in', 'frequency', None, 'keys',
-                                          False],
-                            'grid_label': ['in', 'grid_label', None, 'keys',
-                                           False],
-                            'institution_id': ['in', 'institution_id', None,
-                                               'keys', False],
-                            'institution': ['in', 'institution_id', None,
-                                            'values', False],
-                            'license': ['regex', 'license', None, '', False],
-                            'nominal_resolution': ['in', 'nominal_resolution',
-                                                   None, '', False],
-                            'realm': ['in', 'realm', None, 'keys', False],
-                            'source_id': ['in', 'source_id', None, 'keys',
-                                          True],
-                            'parent_source_id': ['in', 'source_id', None,
-                                                 'keys', False],
-                            'source_type': ['in', 'source_type', None, 'keys',
-                                            False],
-                            'sub_experiment': ['in', 'sub_experiment_id',
-                                               None, 'values', False],
-                            'sub_experiment_id': ['in', 'sub_experiment_id',
-                                                  None, 'keys', False],
-                            'table_id': ['in', 'table_id', None, '', False],
-                            'forcing_index': ['isinstance', 'forcing_index',
-                                              numpy.int32, '', False],
-                            'Conventions': ['contains_all', 'Conventions',
-                                            ['CF-', 'CMIP'], '', False]}
-__cmip6_cv_ignore__ = ["activity_participation",
-                       "additional_allowed_model_components", "cohort",
-                       "description", "end_year", "label_extended", "label",
-                       "min_number_yrs_per_sim", "model_component",
-                       "release_year", "required_model_components",
-                       "start_year", "tier"]
 __name__version_metadata__ = 'version_metadata'
 __content__version_metadata__ = {"CV_collection_modified": str,
                                  "CV_collection_version": str,
@@ -163,6 +119,7 @@ def validate_argument_attribute(arg_name__cv_struct):
     return decorator
 
 
+# ~~~~~~~~~~~~~~ class definitions ~~~~~~~~~~~~~~
 class cv_structure(dict):
 
     __allowed_operations__ = {'in': 'in',
@@ -563,7 +520,285 @@ class cv_structure(dict):
         # Let the other functions to the work
         return self.convert_cv_prepare_fun(self[attribute][3])
 
+    # Carsten: __allowed_types_for_cvs__, welche muessten da rein?
+    @accepts(None, str, __allowed_types_for_cvs__, bool)
+    @validate_argument_attribute('self')
+    def extract_cv(self, attribute, cvs, guess=False):
+        """
+        Return a list of values
 
+        TODO: describe behaviour!!!
+
+        """
+        # get this function's name
+        my_name = sys._getframe().f_code.co_name
+
+        # If self has no check_definitino for `attribute`
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then return None
+        if not self.has_check_definition(attribute):
+            return None
+
+        # Get name of the cv ...
+        cv_name = self[attribute][1]
+
+        # check if our CV was provided via self:
+        if self.has_cv(attribute):
+            raw_return_val = self.get_cv(attribute)
+
+        # if CV was not in self (self[attribute][2] is None)
+        else:
+            # check if the arguments provided via `cvs` is a valid CV dict
+            try:
+                cvs_is_dict = validate_structure_of_cvs(cvs,
+                                                        check_version=False,
+                                                        recursive=False)
+            except TypeError:
+                cvs_is_dict = False
+
+            # if `cvs` is a dict, see if cv named `cv_name` is in it
+            if cvs_is_dict:
+                # Do some tests with `cv_name`:
+                #     Test if `cv_name` is in the CV
+                if(cv_name not in cvs.keys()):
+                    # if no empty key in `cvs` and
+                    #    `cv_name` is empty
+                    # then we return the whole `cvs` and
+                    #      apply (if given) a function
+
+                    if(len(cv_name) == 0):
+                        raw_return_val = cvs
+                    else:
+                        raise KeyError('cv_tools.'+my_name+':: CV with name ' +
+                                       cv_name + ' does not exist in provide' +
+                                       'd CV-dictionary')
+                else:
+                    # store return value
+                    raw_return_val = cvs[cv_name]
+
+            else:
+                # if caller does not want that we guess, we throw an error here
+                if (not guess):
+                    raise TypeError('cv_tools.'+my_name+':: arg `cvs` is no ' +
+                                    'valid CV; please set `guess` to `True` ' +
+                                    'if you wish me to guess and to try to c' +
+                                    'onstruct a CV.')
+                else:
+                    # ~~~~~ let's guess what we have ~~~~~
+                    # If cvs is a dict and
+                    #    we have an non-empty string as cv_name and
+                    #    cv_name exists in the keys of cvs
+                    # then we return the values of the dict entry to the
+                    #    corresponding cv_name as key.
+                    if(isinstance(cvs, dict)):
+                        #     Test if `cv_name` is not in the CV
+                        if(cv_name not in cvs.keys()):
+                            # then we return the whole `cvs` and
+                            #      apply (if given) a function
+                            if(len(cv_name) == 0):
+                                raw_return_val = cvs
+                            else:
+                                raise KeyError('cv_tools.'+my_name+':: CV wi' +
+                                               'th name ' + cv_name + ' does' +
+                                               ' not exist in provided CV-di' +
+                                               'ctionary')
+                        else:
+                            # else return something reasonable
+                            raw_return_val = cvs[cv_name]
+
+                    # else we return `cvs` and hope the calling func knows how
+                    # to use `cvs`
+                    else:
+                        # store return value
+                        raw_return_val = cvs
+
+        # get function to apply to CV to get a nicer CV for comparison
+        cv_fun = self.get_cv_prepare_fun(attribute)
+
+        # return ...
+        if cv_fun is not None:
+            # check if the function `cv_fun` can be applied to `raw_return_val`
+            try:
+                return cv_fun(raw_return_val)
+            except TypeError:
+                raise TypeError('cv_tools.' + my_name + ':: provided functio' +
+                                'n with name `' +
+                                self.get_cv_prepare_fun_name(cv_fun) +
+                                '` cannot be applied on controlled vocabular' +
+                                'y of type `' + type(raw_return_val).__name__ +
+                                '`. If no content was shown between the firs' +
+                                't set of quotation marks then no function n' +
+                                'ame was available.')
+        else:
+            return raw_return_val
+
+
+    @accepts(None, str, __allowed_types_for_cvs__, None, bool)
+    @validate_argument_attribute('self')
+    def check_cv(self, attribute, cvs, value, guess=False):
+        """
+        TODO
+
+        TODO: check against CVs of operations
+        TODO: `return` "not implemented" when allowed operation is not covered
+
+        """
+        # get this function's name
+        my_name = sys._getframe().f_code.co_name
+
+        # If self has no check_definitino for `attribute`
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then throw an error
+        if not self.has_check_definition(attribute):
+            raise RuntimeError('cv_tools.' + my_name + ':: No check structur' +
+                               'e for attribute `' + attribute + '` is provi' +
+                               'ded via `self` (value corresponding to key `' +
+                               attribute + '` is `None`). Therefore, it is a' +
+                               'ssumed that only the existance of the attrib' +
+                               'ute should be checked and not its value.')
+
+        # ... extract CV, and ...
+        cv = self.extract_cv(attribute, cvs, guess)
+        # ... get operation.
+        operation = self.get_operation(attribute)
+
+        # ~~~~~ perform some checks and preparation ~~~~~
+        # for IN, NOT IN, CONTAINS ANY and CONTAINS ALL
+        if (operation in ['in', 'not_in', 'contains_any', 'contains_all']):
+            # ~~~ if our cv is `iterable` and not a `str`, we keep it as is ~~~
+            # test for iterable
+            try:
+                cv.__iter__
+                # If we reach here, we are iterable. Therefore, we test for
+                # string. We could do this outside of the try-except block.
+                # However, in doing it this way we simplify the modification
+                # of this code.
+                if (isinstance(cv, str)):
+                    raise AttributeError('dummy err to enter `except` clause')
+            except AttributeError:
+                # if we get an AttributeError it is non-`iterable` or a string
+                # we put it into a list
+                cv = [cv]
+
+            # get first type of value
+            value_type = type(value)
+            # check if `value` and content of `cv` are of same type
+            if(any(not isinstance(c, value_type) for c in cv)):
+                raise TypeError('cv_tools.'+my_name+':: value to check and ' +
+                                'values in the CV are of different types')
+
+        # for ISINSTANCE
+        if (operation == 'isinstance'):
+            if (not isinstance_recursive_tuple(cv, type)):
+                raise TypeError('cv_tools.'+my_name+':: When operation `isin' +
+                                'stance` is chosen, the provided CV or indiv' +
+                                'idual variable has to be of type `type` or ' +
+                                'a tuple containing `type`s.')
+
+        # for REGEX
+        if (operation == 'regex'):
+            if (isinstance(cv, list)):
+                if (len(cv) == 1):
+                    cv = cv[0]
+                else:
+                    raise ValueError('cv_tools.'+my_name+':: When operation ' +
+                                     '`regex` is chosen and the provided CV ' +
+                                     'is of type list, then the list has to ' +
+                                     'be of length 1 (one) and has to contai' +
+                                     'n a `str`')
+            if (not isinstance(value, str)):
+                raise TypeError('cv_tools.'+my_name+':: When operation `rege' +
+                                'x` is chosen, the provided value to check h' +
+                                'as to be one item of type `str`.')
+            if (not isinstance(cv, str)):
+                raise TypeError('cv_tools.'+my_name+':: When operation `rege' +
+                                'x` is chosen, the provided CV has to be one' +
+                                ' item of type `str`.')
+            # convert CMIP6 license text into a regex
+            # NOTE: The CMIP6 CV contains a pseudo-regex of the license text.
+            #       We need to convert it into a proper python-regex, first.
+            #  replace tags like `<TEXT>`
+            str_regex_tag01 = '<[^<>]*>'
+            regex_tag01 = re.compile(str_regex_tag01)
+            #  replace tags like `[TEXT]`
+            str_regex_tag02 = '[-]?\[[^[\]]*\]'
+            regex_tag02 = re.compile(str_regex_tag02)
+            #  replace URLs starting with `https://` or `http://`
+            str_regex_url = 'http[s]:\/\/[^\s\)]*'
+            regex_url = re.compile(str_regex_url)
+            # replace words with underscore
+            str_regex_underscore = '[a-zA-Z0-9]+(_[a-zA-Z0-9]+)+'
+            regex_underscore = re.compile(str_regex_underscore)
+            # replace parenthese
+            str_regex_parentheses_open = '\('
+            str_regex_parentheses_close = '\)'
+            regex_parentheses_open = re.compile(str_regex_parentheses_open)
+            regex_parentheses_close = re.compile(str_regex_parentheses_close)
+            #  prepare real regex
+            str_regex_cv = \
+                '^'+re.sub(regex_parentheses_open, '\(',
+                           re.sub(regex_parentheses_close, '\)',
+                                  re.sub(regex_underscore, '.*',
+                                         re.sub(regex_tag01, '.*',
+                                                re.sub(regex_tag02, '.*',
+                                                       re.sub(regex_url,
+                                                              '.*', cv)
+                                                       )))))+'$'
+            regex_cv = re.compile(str_regex_cv)
+            # match regex
+            if re.fullmatch(regex_cv, value):
+                return True
+            else:
+                return False
+
+        # ['in', 'not_in', 'regex', 'isinstance', 'contains_any',
+        #  'contains_all']
+        # IN
+        if (operation == 'in'):
+            if (value in cv):
+                return True
+            else:
+                return False
+
+        # NOT IN
+        if (operation == 'not_in'):
+            if (value not in cv):
+                return True
+            else:
+                return False
+
+        # IS INSTANCE
+        if (operation in 'isinstance'):
+            if (isinstance(value, cv)):
+                return True
+            else:
+                return False
+
+        # CONTAINS ANY
+        if (operation == 'contains_any'):
+            if (any([c in value for c in cv])):
+                return True
+            else:
+                return False
+
+        # CONTAINS ALL
+        if (operation == 'contains_all'):
+            if (not any([c not in value for c in cv])):
+                return True
+            else:
+                return False
+
+        # When we reach here something went wrong.
+        raise ValueError('cv_tools.'+my_name+':: Operation `' + operation +
+                         '` does not seem to be supported. Otherwise, you wo' +
+                         'uld not get this error. However, not-implemented o' +
+                         'perations should have been captured far earlier. T' +
+                         'herefore, please inform the developers by posting ' +
+                         'an issue at the official GitHub repository of this' +
+                         ' plugin.')
+
+
+# ~~~~~~~~~~~~~~ function definitions ~~~~~~~~~~~~~~
 def should_process_all_cvs(process_all_cvs):
     """
     TODO
@@ -580,277 +815,6 @@ def should_process_all_cvs(process_all_cvs):
             return True
 
     return False
-
-
-# Carsten: __allowed_types_for_cvs__, welche muessten da rein?
-@accepts(cv_structure, str, __allowed_types_for_cvs__, bool)
-@validate_argument_attribute('cv_struct')
-def extract_cv(cv_struct, attribute, cvs, guess=False):
-    """
-    Return a list of values
-
-    TODO: describe behaviour!!!
-
-    """
-    # get this function's name
-    my_name = sys._getframe().f_code.co_name
-
-    # If cv_struct has no check_definitino for `attribute`
-    #  (meaning that only the existance of the attribute should be tested)
-    #  then return None
-    if not cv_struct.has_check_definition(attribute):
-        return None
-
-    # Get name of the cv ...
-    cv_name = cv_struct[attribute][1]
-
-    # check if our CV was provided via cv_struct:
-    if cv_struct.has_cv(attribute):
-        raw_return_val = cv_struct.get_cv(attribute)
-
-    # if CV was not in cv_struct (cv_struct[attribute][2] is None)
-    else:
-        # check if the arguments provided via `cvs` is a valid CV dictionary
-        try:
-            cvs_is_dict = validate_structure_of_cvs(cvs, check_version=False,
-                                                    recursive=False)
-        except TypeError:
-            cvs_is_dict = False
-
-        # if `cvs` is a dict, see if cv named `cv_name` is in it
-        if cvs_is_dict:
-            # Do some tests with `cv_name`:
-            #     Test if `cv_name` is in the CV
-            if(cv_name not in cvs.keys()):
-                # if no empty key in `cvs` and
-                #    `cv_name` is empty
-                # then we return the whole `cvs` and
-                #      apply (if given) a function
-
-                if(len(cv_name) == 0):
-                    raw_return_val = cvs
-                else:
-                    raise KeyError('cv_tools.'+my_name+':: CV with name ' +
-                                   cv_name + ' does not exist in provided ' +
-                                   'CV-dictionary')
-            else:
-                # store return value
-                raw_return_val = cvs[cv_name]
-
-        else:
-            # if caller does not want that we guess, we throw an error here
-            if (not guess):
-                raise TypeError('cv_tools.'+my_name+':: arg `cvs` is no vali' +
-                                'd CV; please set `guess` to `True` if you w' +
-                                'ish me to guess and to try to construct a CV')
-            else:
-                # ~~~~~ let's guess what we have ~~~~~
-                # If cvs is a dict and
-                #    we have an non-empty string as cv_name and
-                #    cv_name exists in the keys of cvs
-                # then we return the values of the dict entry to the
-                #    corresponding cv_name as key.
-                if(isinstance(cvs, dict)):
-                    #     Test if `cv_name` is not in the CV
-                    if(cv_name not in cvs.keys()):
-                        # then we return the whole `cvs` and
-                        #      apply (if given) a function
-                        if(len(cv_name) == 0):
-                            raw_return_val = cvs
-                        else:
-                            raise KeyError('cv_tools.'+my_name+':: CV with ' +
-                                           'name ' + cv_name + ' does not ' +
-                                           'exist in provided CV-dictionary')
-                    else:
-                        # else return something reasonable
-                        raw_return_val = cvs[cv_name]
-
-                # else we return `cvs` and hope the calling func knows how to
-                # use `cvs`
-                else:
-                    # store return value
-                    raw_return_val = cvs
-
-    # get function to apply to CV to get a nicer CV for comparison
-    cv_fun = cv_struct.get_cv_prepare_fun(attribute)
-
-    # return ...
-    if cv_fun is not None:
-        # check if the function `cv_fun` can be applied to `raw_return_val`
-        try:
-            return cv_fun(raw_return_val)
-        except TypeError:
-            raise TypeError('cv_tools.' + my_name + ':: provided function ' +
-                            'with name `' +
-                            cv_struct.get_cv_prepare_fun_name(cv_fun) +
-                            '` cannot be applied on controlled vocabulary ' +
-                            'of type `' + type(raw_return_val).__name__ +
-                            '`. If no content was shown between the first ' +
-                            'set of quotation marks then no function name ' +
-                            'was available.')
-    else:
-        return raw_return_val
-
-
-@accepts(cv_structure, str, __allowed_types_for_cvs__, None, bool)
-@validate_argument_attribute('cv_struct')
-def check_cv(cv_struct, attribute, cvs, value, guess=False):
-    """
-    TODO
-
-    TODO: check against CVs of operations
-    TODO: `return` "not implemented" when allowed operation is not covered
-
-    """
-    # get this function's name
-    my_name = sys._getframe().f_code.co_name
-
-    # If cv_struct has no check_definitino for `attribute`
-    #  (meaning that only the existance of the attribute should be tested)
-    #  then throw an error
-    if not cv_struct.has_check_definition(attribute):
-        raise RuntimeError('cv_tools.' + my_name + ':: No check structure fo' +
-                           'r attribute `' + attribute + '` is provided via ' +
-                           '`cv_struct` (value corresponding to key `' + 
-                           attribute + '` is `None`). Therefore, it is assum' +
-                           'ed that only the existance of the attribute shou' +
-                           'ld be checked and not its value.')
-
-    # ... extract CV, and ...
-    cv = extract_cv(cv_struct, attribute, cvs, guess)
-    # ... get operation.
-    operation = cv_struct.get_operation(attribute)
-
-    # ~~~~~ perform some checks and preparation ~~~~~
-    # for IN, NOT IN, CONTAINS ANY and CONTAINS ALL
-    if (operation in ['in', 'not_in', 'contains_any', 'contains_all']):
-        # ~~~~~ if our cv is `iterable` and not a `str`, we keep it as is ~~~~~
-        # test for iterable
-        try:
-            cv.__iter__
-            # If we reach here, we are iterable. Therefore, we test for string.
-            # We could do this outside of the try-except block. However, by
-            # doing it this way we simplify the modification of this code.
-            if (isinstance(cv, str)):
-                raise AttributeError('dummy error to enter `except` clause')
-        except AttributeError:
-            # if we get an AttributeError it is non-`iterable` or a string
-            # we put it into a list
-            cv = [cv]
-
-        # get first type of value
-        value_type = type(value)
-        # check if `value` and content of `cv` are of same type
-        if(any(not isinstance(c, value_type) for c in cv)):
-            raise TypeError('cv_tools.'+my_name+':: value to check and ' +
-                            'values in the CV are of different types')
-
-    # for ISINSTANCE
-    if (operation == 'isinstance'):
-        if (not isinstance_recursive_tuple(cv, type)):
-            raise TypeError('cv_tools.'+my_name+':: When operation `isinstan' +
-                            'ce` is chosen, the provided CV or individual va' +
-                            'riable has to be of type `type` or a tuple cont' +
-                            'aining `type`s.')
-
-    # for REGEX
-    if (operation == 'regex'):
-        if (isinstance(cv, list)):
-            if (len(cv) == 1):
-                cv = cv[0]
-            else:
-                raise ValueError('cv_tools.'+my_name+':: When operation ' +
-                                 '`regex` is chosen and the provided CV is ' +
-                                 'of type list, then the list has to be of ' +
-                                 'length 1 (one) and has to contain a `str`')
-        if (not isinstance(value, str)):
-            raise TypeError('cv_tools.'+my_name+':: When operation `regex` ' +
-                            'is chosen, the provided value to check has to ' +
-                            'be one item of type `str`.')
-        if (not isinstance(cv, str)):
-            raise TypeError('cv_tools.'+my_name+':: When operation `regex` ' +
-                            'is chosen, the provided CV has to be one item ' +
-                            'of type `str`.')
-        # convert CMIP6 license text into a regex
-        # NOTE: The CMIP6 CV contains a pseudo-regex of the license text.
-        #       We need to convert it into a proper python-regex, first.
-        #  replace tags like `<TEXT>`
-        str_regex_tag01 = '<[^<>]*>'
-        regex_tag01 = re.compile(str_regex_tag01)
-        #  replace tags like `[TEXT]`
-        str_regex_tag02 = '[-]?\[[^[\]]*\]'
-        regex_tag02 = re.compile(str_regex_tag02)
-        #  replace URLs starting with `https://` or `http://`
-        str_regex_url = 'http[s]:\/\/[^\s\)]*'
-        regex_url = re.compile(str_regex_url)
-        # replace words with underscore
-        str_regex_underscore = '[a-zA-Z0-9]+(_[a-zA-Z0-9]+)+'
-        regex_underscore = re.compile(str_regex_underscore)
-        # replace parenthese
-        str_regex_parentheses_open = '\('
-        str_regex_parentheses_close = '\)'
-        regex_parentheses_open = re.compile(str_regex_parentheses_open)
-        regex_parentheses_close = re.compile(str_regex_parentheses_close)
-        #  prepare real regex
-        str_regex_cv = '^'+re.sub(regex_parentheses_open, '\(',
-                                  re.sub(regex_parentheses_close, '\)',
-                                         re.sub(regex_underscore, '.*',
-                                                re.sub(regex_tag01, '.*',
-                                                       re.sub(regex_tag02,
-                                                              '.*',
-                                                              re.sub(regex_url,
-                                                                     '.*', cv)
-                                                              )))))+'$'
-        regex_cv = re.compile(str_regex_cv)
-        # match regex
-        if re.fullmatch(regex_cv, value):
-            return True
-        else:
-            return False
-
-    # ['in', 'not_in', 'regex', 'isinstance', 'contains_any', 'contains_all']
-    # IN
-    if (operation == 'in'):
-        if (value in cv):
-            return True
-        else:
-            return False
-
-    # NOT IN
-    if (operation == 'not_in'):
-        if (value not in cv):
-            return True
-        else:
-            return False
-
-    # IS INSTANCE
-    if (operation in 'isinstance'):
-        if (isinstance(value, cv)):
-            return True
-        else:
-            return False
-
-    # CONTAINS ANY
-    if (operation == 'contains_any'):
-        if (any([c in value for c in cv])):
-            return True
-        else:
-            return False
-
-    # CONTAINS ALL
-    if (operation == 'contains_all'):
-        if (not any([c not in value for c in cv])):
-            return True
-        else:
-            return False
-
-    # When we reach here something went wrong.
-    raise ValueError('cv_tools.'+my_name+':: Operation `' + operation + '` d' +
-                     'oes not seem to be supported. Otherwise, you would not' +
-                     ' get this error. However, not-implemented operations s' +
-                     'hould have been captured far earlier. Therefore, pleas' +
-                     'e inform the developers by posting an issue at the off' +
-                     'icial GitHub repository of this plugin.')
 
 
 @accepts(dict, bool, bool)

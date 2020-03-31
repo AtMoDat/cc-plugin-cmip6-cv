@@ -1,5 +1,6 @@
 from cc_plugin_cmip6_cv.cv_tools import cv_structure, \
-    validate_structure_of_cvs, should_process_all_cvs
+    validate_structure_of_cvs, should_process_all_cvs, \
+    validate_argument_attribute
 import cc_plugin_cmip6_cv.cv_tools as cv_tools
 import pytest
 import numpy
@@ -124,6 +125,101 @@ list_cv_structs_ValueError = [dummy_cv_struct_bad_01,
 list_cv_structs_TypeError = [dummy_cv_struct_bad_02,
                              dummy_cv_struct_bad_05,
                              dummy_cv_struct_bad_06]
+
+
+def test__cv_tools__validate_argument_attribute():
+    # see: https://stackoverflow.com/questions/34648337/how-to-test-a-decorator-in-a-python-package/34648674
+
+    # input data:
+    #   some basic cv_structure
+    dummy_cv_struct = cv_structure(dummy_cv_struct_good_01)
+
+    # some successful tests
+    #   try correct attribute
+    #   name of instance of cv_structure: `cv_struct`
+    #   => no error
+    @validate_argument_attribute(None)
+    def dummy_fun(cv_struct, attribute):
+        return cv_struct[attribute]
+    assert dummy_cv_struct['attr01'] == dummy_fun(dummy_cv_struct, 'attr01')
+
+    #   try another correct attribute
+    #   name of instance of cv_structure: `cv_struct`
+    #   => no error
+    @validate_argument_attribute(None)
+    def dummy_fun(cv_struct, attribute):
+        return cv_struct[attribute]
+    assert dummy_cv_struct['attr02'] == dummy_fun(dummy_cv_struct, 'attr02')
+
+    #   try correct attribute
+    #   name of instance of cv_structure: `self`
+    #   => no error
+    @validate_argument_attribute(None)
+    def dummy_fun(self, attribute):
+        return self[attribute]
+    assert dummy_cv_struct['attr01'] == dummy_fun(dummy_cv_struct, 'attr01')
+
+    #   try correct attribute
+    #   name of instance of cv_structure: `self`, mention `self` in decorator
+    #   => no error
+    @validate_argument_attribute('self')
+    def dummy_fun(self, attribute):
+        return self[attribute]
+    assert dummy_cv_struct['attr01'] == dummy_fun(dummy_cv_struct, 'attr01')
+
+    #   try correct attribute
+    #   name of instance of cv_structure: `abc`; mention `abc` in decorator
+    #   => no error
+    @validate_argument_attribute('abc')
+    def dummy_fun(abc, attribute):
+        return abc[attribute]
+    assert dummy_cv_struct['attr01'] == dummy_fun(dummy_cv_struct, 'attr01')
+
+    # test with errors
+    #   try correct attribute
+    #   name of instance of cv_structure: `blub`
+    #   => RuntimeError
+    @validate_argument_attribute(None)
+    def dummy_fun(blub, attribute):
+        return blub[attribute]
+    with pytest.raises(RuntimeError):
+        dummy_fun(dummy_cv_struct, 'attr01')
+
+    #   try correct attribute
+    #   provide instance of `str` as argument `cv_struct`
+    #   => RuntimeError
+    @validate_argument_attribute(None)
+    def dummy_fun(cv_struct, attribute):
+        return cv_struct[attribute]
+    with pytest.raises(RuntimeError):
+        dummy_fun('a bad value', 'attr01')
+
+    #   try incorrect attribute
+    #   name of instance of cv_structure: `cv_struct`
+    #   => ValueError
+    @validate_argument_attribute(None)
+    def dummy_fun(cv_struct, attribute):
+        return cv_struct[attribute]
+    with pytest.raises(ValueError):
+        dummy_fun(dummy_cv_struct, 'attr03')
+
+    #   try wrong type for attribute
+    #   name of instance of cv_structure: `cv_struct`
+    #   => TypeError
+    @validate_argument_attribute(None)
+    def dummy_fun(cv_struct, attribute):
+        return cv_struct[attribute]
+    with pytest.raises(TypeError):
+        dummy_fun(dummy_cv_struct, 77)
+
+    #   do not have the attribute
+    #   name of instance of cv_structure: `cv_struct`
+    #   => RuntimeError
+    @validate_argument_attribute(None)
+    def dummy_fun(cv_struct, attr):
+        return cv_struct[attr]
+    with pytest.raises(RuntimeError):
+        dummy_fun(dummy_cv_struct, 'attr01')
 
 
 def test_cv_tools_constants():

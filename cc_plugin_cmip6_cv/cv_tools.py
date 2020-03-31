@@ -198,6 +198,10 @@ class cv_structure(dict):
 
         # test, whether our input has the structure we want
         for key, value in self.items():
+            # check if value is None; then skip further checking of value
+            if value is None:
+                continue
+
             # check type of definition of cv_structure (should be list)
             if(not isinstance(value, list)):
                 raise TypeError('cv_structure.'+my_name+':: bad item;' +
@@ -280,14 +284,36 @@ class cv_structure(dict):
                                 'case. The type is ' +
                                 type(value[4]).__name__ + '; key: ' + key)
 
+    @accepts(None, str)
+    @validate_argument_attribute('self')
+    def has_check_definition(self, attribute):
+        """
+        TODO
+
+        @param attribute str, TODO
+        @return: boolean; TODO
+        """
+        # If `self[attribute]` is None
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then return False
+        #  else return True
+        if self[attribute] is None:
+            return False
+        else:
+            return True
+
     def get_attributes_to_check(self):
         return super(cv_structure, self).keys()
 
     # return names for which no CV exists yet
     def get_cv_names_needed(self):
-        return list(set([values[1]
-                         for values
-                         in self.values() if values[2] is None]))
+        return list(set([cv_check_def[1]
+                         for cv_check_def
+                         in [values
+                             for values
+                             in self.values()
+                             if values is not None]
+                         if self.values() if cv_check_def[2] is None]))
 
     @accepts(None, str)
     @validate_argument_attribute('self')
@@ -304,6 +330,11 @@ class cv_structure(dict):
         list in the value of an entry (the entry corresponding
         to the provided `attribute`-name).
         """
+        # If `self[attribute]` is None
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then return False
+        if not self.has_check_definition(attribute):
+            return False
         # copy 5th value of cv definition for better readability of the code
         child_struct = self[attribute][4]
         # check if children should be checked
@@ -349,6 +380,12 @@ class cv_structure(dict):
         @return: bool; True if a CV is contained in the CV structure object and
                         False if not (then an external CV has to be provided).
         """
+        # If `self[attribute]` is None
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then return False
+        if not self.has_check_definition(attribute):
+            return False
+        # ... otherwise perform the actual test
         return (self[attribute][2] is not None)
 
     @accepts(None, str)
@@ -404,6 +441,11 @@ class cv_structure(dict):
         @param attribute str, TODO
         @return: str; TODO
         """
+        # If `self[attribute]` is None
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then return None
+        if not self.has_check_definition(attribute):
+            return None
         # get and convert operation from cv_structure
         return self.convert_operation(self[attribute][0])
 
@@ -513,6 +555,11 @@ class cv_structure(dict):
         @param attribute str, TODO
         @return: callable; TODO
         """
+        # If `self[attribute]` is None
+        #  (meaning that only the existance of the attribute should be tested)
+        #  then return None
+        if not self.has_check_definition(attribute):
+            return None
         # Let the other functions to the work
         return self.convert_cv_prepare_fun(self[attribute][3])
 
@@ -547,6 +594,12 @@ def extract_cv(cv_struct, attribute, cvs, guess=False):
     """
     # get this function's name
     my_name = sys._getframe().f_code.co_name
+
+    # If cv_struct has no check_definitino for `attribute`
+    #  (meaning that only the existance of the attribute should be tested)
+    #  then return None
+    if not cv_struct.has_check_definition(attribute):
+        return None
 
     # Get name of the cv ...
     cv_name = cv_struct[attribute][1]
@@ -651,6 +704,17 @@ def check_cv(cv_struct, attribute, cvs, value, guess=False):
     """
     # get this function's name
     my_name = sys._getframe().f_code.co_name
+
+    # If cv_struct has no check_definitino for `attribute`
+    #  (meaning that only the existance of the attribute should be tested)
+    #  then throw an error
+    if not cv_struct.has_check_definition(attribute):
+        raise RuntimeError('cv_tools.' + my_name + ':: No check structure fo' +
+                           'r attribute `' + attribute + '` is provided via ' +
+                           '`cv_struct` (value corresponding to key `' + 
+                           attribute + '` is `None`). Therefore, it is assum' +
+                           'ed that only the existance of the attribute shou' +
+                           'ld be checked and not its value.')
 
     # ... extract CV, and ...
     cv = extract_cv(cv_struct, attribute, cvs, guess)

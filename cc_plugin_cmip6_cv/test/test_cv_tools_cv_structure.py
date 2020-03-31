@@ -94,7 +94,8 @@ dummy_cv_struct_good_03 = {'attr01': ['in', 'cv01', None, 'keys', False],
                            'attr10': ['in', 'cv07', None, 'keys', True],
                            'attr11': ['in', '', None, '', False],
                            'attr12': ['in', 'cv99', None, '', False],
-                           'attr13': ['in', '', None, 'keys', False]}
+                           'attr13': ['in', '', None, 'keys', False],
+                           'attr14': None}
 #   wrong value; ValueError
 dummy_cv_struct_bad_01 = {'attr01': ['in', 'cv01', None, 'keys', False],
                           'attr02': ['BAD VALUE', 'cv01', None, 'values', False]}
@@ -311,4 +312,9 @@ def test_convert_cv_prepare_fun():
 
 @pytest.mark.skip(reason="test function not implemented yet")
 def test_get_cv_prepare_fun():
+    pass
+
+
+@pytest.mark.skip(reason="test function not implemented yet")
+def test_has_check_definition():
     pass

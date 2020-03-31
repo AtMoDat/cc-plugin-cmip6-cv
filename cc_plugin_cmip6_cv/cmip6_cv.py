@@ -87,6 +87,17 @@ class CMIP6CVBaseCheck(BaseCheck):
             # print(attribute)
             # check value of attribute for presence in Dataset
             if (hasattr(dataset, attribute)):
+                # if there is no check-definitino for `attribute`
+                # then we just check for its existence.
+                if not cv_struct.has_check_definition(attribute):
+                    results.append(Result(BaseCheck.HIGH, True, test_name_base,
+                                          ['attribute `' + attribute + '` no' +
+                                           't present in netCDF file; hierar' +
+                                           'chy of CVs checked: ' +
+                                           ' -> '.join(this_attribute_tree)]))
+                    continue
+
+                # else ... do more!
                 attr_correct = check_cv(cv_struct, attribute, cvs,
                                         getattr(dataset, attribute),
                                         guess=True)

@@ -70,7 +70,8 @@ dummy_cv_struct_good_03 = {'attr01': ['in', 'cv01', None, 'keys', False],
                            'attr10': ['in', 'cv07', None, 'keys', True],
                            'attr11': ['in', '', None, '', False],
                            'attr12': ['in', 'cv99', None, '', False],
-                           'attr13': ['in', '', None, 'keys', False]}
+                           'attr13': ['in', '', None, 'keys', False],
+                           'attr14': None}
 #   wrong value; ValueError
 dummy_cv_struct_bad_01 = {'attr01': ['in', 'cv01', None, 'keys', False],
                           'attr02': ['BAD VALUE', 'cv01', None, 'values', False]}

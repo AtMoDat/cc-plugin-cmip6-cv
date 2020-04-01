@@ -333,7 +333,7 @@ def test_update_performed():
         assert not update_performed(__lock_test_dir__)
 
 
-@pytest.mark.skip(reason="test function not implemented yet")
+# @pytest.mark.skip(reason="test function not implemented yet")
 @prepost_test_dir(__lock_test_dir__)
 def test_update_needed():
     # set some constants
@@ -364,7 +364,7 @@ def test_update_needed():
     # remove old file and create new
     os.remove(expected_file)
     handle_update_file = open(expected_file, 'w')
-    handle_update_file.write(paste_date.strftime())
+    handle_update_file.write(paste_date.strftime('%Y-%m-%d'))
     handle_update_file.close()
     # test
     assert not update_needed(__lock_test_dir__)
@@ -375,7 +375,7 @@ def test_update_needed():
     # remove old file and create new
     os.remove(expected_file)
     handle_update_file = open(expected_file, 'w')
-    handle_update_file.write(paste_date.strftime())
+    handle_update_file.write(paste_date.strftime('%Y-%m-%d'))
     handle_update_file.close()
     # test
     assert update_needed(__lock_test_dir__)

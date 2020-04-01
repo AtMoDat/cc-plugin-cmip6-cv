@@ -3,15 +3,19 @@ from cc_plugin_cmip6_cv.util import is_json_cv, compare_json_cv_versions, \
         download_file, update_needed, update_cmip6_json_cv, update_json_cv, \
         update_performed, data_directory_collection
 import cc_plugin_cmip6_cv.util as util
+from cc_plugin_cmip6_cv.cmip6_cv import CMIP6CVBaseCheck
 import pytest
 import os
 import datetime
 import inspect
 import appdirs
+import functools
 
 __current_dir__ = os.path.abspath(os.path.dirname(__file__))
-__lock_test_dir__ = __current_dir__+'/tmp_test_lock'
+# __lock_test_dir__ = __current_dir__+'/tmp_test_lock'
+__lock_test_dir__ = appdirs.user_data_dir(CMIP6CVBaseCheck._cc_spec, 'cc')+'/tmp_test_lock'
 __data_url__ = 'https://raw.githubusercontent.com/WCRP-CMIP/CMIP6_CVs/master'
+__test_data_url__ = 'https://raw.githubusercontent.com/neumannd/cc-plugin-cmip6-cv/master/cc_plugin_cmip6_cv/test/data'
 
 __lock_file__ = '.locked'
 __last_update_file__ = '.last_update'
@@ -19,9 +23,10 @@ __last_update_file__ = '.last_update'
 __update_period__ = datetime.timedelta(days=7)
 
 
-# TODO: test special case: `is instance` => `type`; think about structure ...
 def prepost_test_dir(test_dir):
     def decorator(func):
+        # the actual wrapper
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # PREPARATION
             # check if dir/file exists
@@ -41,7 +46,8 @@ def prepost_test_dir(test_dir):
             output = func(*args, **kwargs)
 
             # FINALIZE
-            os.rmdir(test_dir)
+            # os.rmdir(test_dir)
+            remove_recursive(test_dir)
 
             # return function's output
             return output
@@ -248,23 +254,88 @@ def test_is_dir_locked():
     assert not is_dir_locked(__lock_test_dir__)
 
 
-@pytest.mark.skip(reason="test function not implemented yet")
+@pytest.mark.parametrize(
+    "src_file,dst_file,warning,output",
+    [(__test_data_url__+'/CMIP6_institution_id.json',
+      __lock_test_dir__+'/CMIP6_institution_id.json',
+      None,
+      __lock_test_dir__+'/CMIP6_institution_id.json'),
+     (__test_data_url__+'/not_an_existing_file.json',
+      __lock_test_dir__+'/not_an_existing_file.json',
+      RuntimeWarning,
+      None),
+     ('https://some.bad.url',
+      __lock_test_dir__+'/another_not_an_existing_file.json',
+      RuntimeWarning,
+      None)]
+)
 @prepost_test_dir(__lock_test_dir__)
-def test_download_file():
-    # TODO: implement
-    pass
+def test_download_file_a(src_file, dst_file, warning, output):
+    # header: download_file(src_file, dst_file)
+    with pytest.warns(warning):
+        assert output == download_file(src_file, dst_file)
+
+
+@prepost_test_dir(__lock_test_dir__)
+def test_download_file_b():
+    # header: download_file(src_file, dst_file)
+
+    # test data
+    src_file = __test_data_url__+'/CMIP6_institution_id.json'
+    dst_file = __lock_test_dir__+'/CMIP6_institution_id.json'
+
+    # first download
+    assert dst_file == download_file(src_file, dst_file)
+
+    # second download (overwrite implicitely set on `True`)
+    assert dst_file == download_file(src_file, dst_file)
+
+    # third download (overwrite explicitely set on `True`)
+    assert dst_file == download_file(src_file, dst_file, overwrite=True)
+
+    # fourth download (overwrite explicitely set on `False`)
+    with pytest.raises(OSError):
+        assert dst_file == download_file(src_file, dst_file, overwrite=False)
+
+
+# @pytest.mark.skip(reason="test function not implemented yet")
+@prepost_test_dir(__lock_test_dir__)
+def test_update_performed():
+    # set some constants
+    expected_file = __lock_test_dir__+'/'+__last_update_file__
+    bad_directory = __lock_test_dir__+'/some/directory/that/does/not/exist'
+    str_todays_date = datetime.date.today().strftime('%Y-%m-%d')
+
+    # check if created testing directory is actually empty
+    assert not os.path.isfile(expected_file)
+
+    # do an `update_performed`
+    update_performed(__lock_test_dir__)
+    assert os.path.isfile(expected_file)
+    # check if created file does contain todays date
+    handle_update_file = open(expected_file)
+    assert str_todays_date == handle_update_file.readline()
+    handle_update_file.close()
+
+    # do another `update_performed` (should work without issues)
+    update_performed(__lock_test_dir__)
+    assert os.path.isfile(expected_file)
+
+    # check for a non-existing directory
+    with pytest.raises(OSError):
+        assert not update_performed(bad_directory)
+
+    # Run `update_performed` when a directory exists, which has the same name
+    # as the update status file
+    os.remove(expected_file)
+    os.mkdir(expected_file)
+    with pytest.raises(OSError):
+        assert not update_performed(__lock_test_dir__)
 
 
 @pytest.mark.skip(reason="test function not implemented yet")
 @prepost_test_dir(__lock_test_dir__)
 def test_update_needed():
-    # TODO: implement
-    pass
-
-
-@pytest.mark.skip(reason="test function not implemented yet")
-@prepost_test_dir(__lock_test_dir__)
-def test_update_performed():
     # TODO: implement
     pass
 

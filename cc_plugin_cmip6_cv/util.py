@@ -250,9 +250,21 @@ def update_needed(some_dir):
         handle_update_file = open(last_update_path)
         str_last_update_date = handle_update_file.read(1)
         handle_update_file.close()
-        # convert last-update-date-string into datetime
-        last_update_date = datetime.datetime.strptime(str_last_update_date,
-                                                      '%Y-%m-%d')
+        try:
+            # convert last-update-date-string into datetime.date
+            last_update_date = datetime.datetime.strptime(str_last_update_date,
+                                                          '%Y-%m-%d').date()
+        except ValueError:
+            # If conversion not possible provide warning and set last update 
+            # date to 1900/01/01.
+            last_update_date = datetime.datetime.strptime('1900-01-01',
+                                                          '%Y-%m-%d').date()
+            warnings.warn('util.' + my_name + ':: cannot convert date read f' +
+                          'rom update status file into datetime object; assu' +
+                          'ming that update has to be performed; value: ' +
+                          str_last_update_date,
+                          RuntimeWarning)
+
         # compare current date and last-update-date
         if todays_date >= last_update_date + __update_period__:
             return True

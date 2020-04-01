@@ -248,14 +248,14 @@ def update_needed(some_dir):
                                     'is a directory: '+last_update_path)
         # open last-update-file and get date of last update
         handle_update_file = open(last_update_path)
-        str_last_update_date = handle_update_file.read(1)
+        str_last_update_date = handle_update_file.readline()
         handle_update_file.close()
         try:
             # convert last-update-date-string into datetime.date
             last_update_date = datetime.datetime.strptime(str_last_update_date,
                                                           '%Y-%m-%d').date()
         except ValueError:
-            # If conversion not possible provide warning and set last update 
+            # If conversion not possible provide warning and set last update
             # date to 1900/01/01.
             last_update_date = datetime.datetime.strptime('1900-01-01',
                                                           '%Y-%m-%d').date()
@@ -277,6 +277,18 @@ def update_needed(some_dir):
 
 @accepts(str)
 def update_performed(some_dir):
+    """
+    Updates or creates an update-status-file. If a directory exists in place of
+    the file two write, an `IsADirectoryError` is thrown. If something, which
+    is not a file or directory is in place, an OSError is thrown. If the
+    directory `some_dir` does not exist, a `OSError` is thrown.
+
+    @param some_dir str name of the directory in which the update-status-file
+                        is to be located
+    @return bool True if `update_performed` was run successfully and update-
+                    status-file was properly written; otherwise, an error
+                    should have been thrown
+    """
     # get function's name
     my_name = sys._getframe().f_code.co_name
     # set path of update file
@@ -284,39 +296,76 @@ def update_performed(some_dir):
     # get todays date
     str_todays_date = datetime.date.today().strftime('%Y-%m-%d')
 
+    if not os.path.exists(some_dir):
+        raise OSError('util.'+my_name+':: provided directory `' + some_dir +
+                      '` does not exist.')
+
+    # if file/directory with file name does exist, try to remove it
     if os.path.exists(last_update_path):
         if os.path.isdir(last_update_path):
             raise IsADirectoryError('util.'+my_name+':: update status file ' +
                                     'is a directory: '+last_update_path)
         if os.path.isfile(last_update_path):
             os.remove(last_update_path)
-            handle_update_file = open(last_update_path, 'w')
-            # NOTE: keep this for debugging
-            iostat = handle_update_file.write(str_todays_date)
-            handle_update_file.close()
         else:
-            raise RuntimeError('util.'+my_name+':: something exists at the ' +
-                               'location of ')
+            raise OSError('util.'+my_name+':: something exists at the ' +
+                          'location of ')
+
+    # write the update-date-file
+    handle_update_file = open(last_update_path, 'w')
+    # NOTE: keep this for debugging
+    iostat = handle_update_file.write(str_todays_date)
+    handle_update_file.close()
 
     return True
 
 
-@accepts(str, str)
-def download_file(src_file, dst_file):
+@accepts(str, str, bool)
+def download_file(src_file, dst_file, overwrite=True):
+    """
+    Downloads `src_file` and saves it as `dst_file`.
+
+    Downloads `src_file` and saves it as `dst_file`. If `dst_file` does exist,
+    it is overwritten -- except if `overwrite` is set to `False`. If either the
+    webserver is not available or the webserver is available but provides a 
+    HTTP error code, then no file is written and `None` is returned. Otherwise,
+    if the download was successful, the value of `dst_file` is returned.
+
+    @param src_file str download url of the file to obtain
+    @param dst_file str destination path (directory + file name) where to save
+                        the downloaded file
+    @param overwrite bool choose to overwrite `dst_file` if it already exists
+                          [True]
+    @return `None` or value of `dst_file`; value `dst_file` if download
+                                           successful and `None` otherwise
+    """
     # get function's name
     my_name = sys._getframe().f_code.co_name
+
+    if (os.path.isfile(dst_file) and not overwrite):
+        raise OSError('util.' + my_name + ': Destination file `dst_file` doe' +
+                      's already exist. Set `overwrite` to `True` to overwri' +
+                      'te it.')
 
     try:
         # send request
         r = requests.get(src_file, allow_redirects=True)
-        # write file
-        open(dst_file, mode='wb').write(r.content)
-        # if file exists, return file name
-        if os.path.isfile(dst_file):
-            return dst_file
-        warnings.warn('util.' + my_name + ':: file could not be downloaded a' +
-                      'nd saved for unknown reason; source url: ' + src_file +
-                      '; destination file: ' + dst_file, RuntimeWarning)
+        # check if status code indicates successful download
+        if r.status_code == requests.codes.ok:
+            # write file
+            open(dst_file, mode='wb').write(r.content)
+            # if file exists, return file name
+            if os.path.isfile(dst_file):
+                return dst_file
+            warnings.warn('util.' + my_name + ':: file could not be download' +
+                          'ed and saved for unknown reason; source url: ' +
+                          src_file + '; destination file: ' + dst_file, 
+                          RuntimeWarning)
+        else:
+            warnings.warn('util.' + my_name + ':: file could not be download' +
+                          'ed; HTTP status code: ' + str(r.status_code) + ';' +
+                          ' source url: ' + src_file,
+                          RuntimeWarning)
     except requests.ConnectionError:
         warnings.warn('util.' + my_name + ':: connection could not be establ' +
                       'ished to download file: ' + src_file, RuntimeWarning)

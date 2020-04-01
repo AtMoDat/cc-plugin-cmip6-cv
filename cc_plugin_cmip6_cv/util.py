@@ -232,6 +232,26 @@ def unlock_dir(some_dir):
 
 @accepts(str)
 def update_needed(some_dir):
+    """
+    Checks if data/cv files in directory `some_dir` need to be updated.
+
+    The checking is done by comparing the date of the last update with today's
+    date. If no update was performed in the timespan given by 
+    `__update_period__`, which is hard-coded and defined in this module, then
+    `True` is returned. Currently, it is set to seven days. The date of the
+    last updated is stored in a file located in the directory `some_dir`.
+
+    The date in the update file is formatted as 'YYYY-MM-DD'. Other formats do
+    not work. If another format or content is provided, the file is ignored and
+    '1900-01-01' is assumed as last update date.
+
+    If `some_dir` does not exist, an OSError is thrown. If a directory with the
+    same name than the update status file exists in `some_dir` instead of the
+    file then an IsADirectoryError is thrown.
+
+    @parameter some_dir str directory in which data should be updated
+    @return bool True if update is needed and False otherwise
+    """
     # if update period is 0 or negative, we return True
     if __update_period__ <= datetime.timedelta():
         return True
@@ -241,6 +261,10 @@ def update_needed(some_dir):
     last_update_path = some_dir+'/'+__last_update_file__
     # get todays date
     todays_date = datetime.date.today()
+
+    if not os.path.exists(some_dir):
+        raise OSError('util.'+my_name+':: provided directory `' + some_dir +
+                      '` does not exist.')
 
     if os.path.exists(last_update_path):
         if os.path.isdir(last_update_path):

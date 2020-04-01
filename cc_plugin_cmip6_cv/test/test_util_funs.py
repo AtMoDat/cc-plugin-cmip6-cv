@@ -336,14 +336,78 @@ def test_update_performed():
 @pytest.mark.skip(reason="test function not implemented yet")
 @prepost_test_dir(__lock_test_dir__)
 def test_update_needed():
-    # TODO: implement
-    pass
+    # set some constants
+    expected_file = __lock_test_dir__+'/'+__last_update_file__
+    bad_directory = __lock_test_dir__+'/some/directory/that/does/not/exist'
+
+    # ~~~~ tests without errors ~~~~
+    # start with empty directory => need update
+    assert update_needed(__lock_test_dir__)
+
+    # call `update_performed` => no need for update
+    update_performed(__lock_test_dir__)
+    # test
+    assert not update_needed(__lock_test_dir__)
+
+    # insert old date into update status file
+    # => need for update
+    os.remove(expected_file)
+    handle_update_file = open(expected_file, 'w')
+    handle_update_file.write('1900-01-01')
+    handle_update_file.close()
+    # test
+    assert update_needed(__lock_test_dir__)
+
+    # create past date within time span for update
+    # => no need for update
+    paste_date = datetime.date.today() - 0.5*__update_period__
+    # remove old file and create new
+    os.remove(expected_file)
+    handle_update_file = open(expected_file, 'w')
+    handle_update_file.write(paste_date.strftime())
+    handle_update_file.close()
+    # test
+    assert not update_needed(__lock_test_dir__)
+
+    # create past date outside time span for update
+    # => need update
+    paste_date = datetime.date.today() - 2.0*__update_period__
+    # remove old file and create new
+    os.remove(expected_file)
+    handle_update_file = open(expected_file, 'w')
+    handle_update_file.write(paste_date.strftime())
+    handle_update_file.close()
+    # test
+    assert update_needed(__lock_test_dir__)
+
+    # ~~~~ tests causing warnings ~~~~
+    # content of the update status file cannot be converted into a date
+    # remove old file and create new
+    os.remove(expected_file)
+    handle_update_file = open(expected_file, 'w')
+    handle_update_file.write('some_non_convertable_string')
+    handle_update_file.close()
+    with pytest.warns(RuntimeWarning):
+        assert update_needed(__lock_test_dir__)
+
+    # ~~~~ tests causing errors ~~~~
+    # bad directory => OSError
+    with pytest.raises(OSError):
+        update_needed(bad_directory)
+
+    # a directory exists with the same name of the update status file
+    os.remove(expected_file)
+    os.mkdir(expected_file)
+    with pytest.raises(IsADirectoryError):
+        update_needed(__lock_test_dir__)
 
 
 @pytest.mark.skip(reason="test function not implemented yet")
 @prepost_test_dir(__lock_test_dir__)
 def test_update_json_cv():
     # TODO: implement
+
+    #  catch warnings with `with pytest.warns(WARNING):`
     pass
 
 
@@ -483,6 +547,8 @@ def test_compare_dict_cv_versions():
 @pytest.mark.skip(reason="test function not implemented yet")
 def test_read_cmip6_json_cv():
     # TODO: implement test
+
+    #  catch warnings with `with pytest.warns(WARNING):`
     pass
 
 
